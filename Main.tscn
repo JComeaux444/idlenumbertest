@@ -1,12 +1,21 @@
 [gd_scene load_steps=2 format=3 uid="uid://bavjpvlm2xtbd"]
 
-[ext_resource type="Script" path="res://numbers.gd" id="1_qoxp6"]
+[ext_resource type="Script" path="res://goldMethods.gd" id="1_qoxp6"]
 
 [node name="main" type="Node2D"]
 script = ExtResource("1_qoxp6")
 
 [node name="Timer" type="Timer" parent="."]
 process_callback = 0
+wait_time = 0.364
 autostart = true
+
+[node name="TestLabel" type="Label" parent="."]
+offset_right = 525.0
+offset_bottom = 285.0
+text = "Test"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
 
 [connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]
