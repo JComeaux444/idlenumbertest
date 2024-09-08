@@ -1,3 +1,6 @@
-[gd_scene format=3 uid="uid://bavjpvlm2xtbd"]
+[gd_scene load_steps=2 format=3 uid="uid://bavjpvlm2xtbd"]
+
+[ext_resource type="Script" path="res://numbers.gd" id="1_qoxp6"]
 
 [node name="Node2D" type="Node2D"]
+script = ExtResource("1_qoxp6")
