@@ -5,10 +5,10 @@ extends Node
 # Thousands handles 0-999999 so players can spend ex: 234, gold on random items 
 var gold = {
 	
-	"Thousands" : 500,
-	"Millions" : 997,
-	"Billions" : 0,
-	"Trillions" : 0,
+	"Thousand" : 59998,
+	"Million" : 0,
+	"Billion" : 0,
+	"Trillion" : 0,
 	"Quadrillion" : 0,
 	"Quintillion" : 0,
 	"Sextillion" : 0,
@@ -22,6 +22,19 @@ var gold = {
 	"True Infinity" : 0
 	
 }
+var largestNumAt = 0;
+
+#not used
+var gold_val = [500, 997, 0, 0, 
+				0, 0, 0, 0,
+				0, 0, 0, 0, 
+				0, 0, 0]
+
+# used mainly to quickly compare if Mil > Bil etc
+var gold_name = ["Thousand", "Million", "Billion", "Trillion", 
+				"Quadrillion", "Quintillion", "Sextillion", "Septillion", 
+				"Octillion", "Nonillion", "Decillion", "Undecillion", 
+				"Duodecillion", "Infinities", "True Infinity"]
 
 # only here to track timer. count++ when 1 sec passes
 var curTime = 0
@@ -29,7 +42,9 @@ var curTime = 0
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	_update_goldText()
-	#print(gold)
+	print(gold.keys())
+	print()
+	print(gold.values())
 	#pass
 
 func _process(delta: float) -> void:
@@ -38,7 +53,7 @@ func _process(delta: float) -> void:
 # updates TestLabel on the UI only
 # Should format where it is gold[highestUsedOrderofMag-1].gold[highestUsedOrderofMag]
 func _update_goldText():
-	var largestNumAt = 0;
+	
 	var gold_text_formatted = "";
 	var keyNow = "";
 
@@ -73,11 +88,11 @@ func _update_goldText():
 	gold_text.text = str(gold_text_formatted,"\n",gold)
 
 
-# This function should be called by gold making entities after they add gold 
+# This function should be called by gold making/using entities after they add gold 
 # to the above dictionary
 func goldOverCheck():
 	# Amount of millions in the value of Thousands
-	var thousandsCheck = gold["Thousands"]/1000000;
+	var thousandsCheck = gold["Thousand"]/1000000;
 	# Amount of millions in the value of Infinities
 	var infinitiesCheck = gold["Infinities"]/1000000;
 	# Amount of thousands in the value of other between numbers
@@ -94,9 +109,9 @@ func goldOverCheck():
 		# reset overflow
 		overflow = 0;
 		
-		if key == "Thousands":
+		if key == "Thousand":
 			if thousandsCheck >= 1:
-				gold["Thousands"] -= thousandsCheck * 1000000
+				gold["Thousand"] -= thousandsCheck * 1000000
 				print("It went over!")
 				overflow += thousandsCheck
 			
@@ -120,15 +135,43 @@ func goldOverCheck():
 				
 	_update_goldText()
 
+# Not working as intended, need to find a way to prevent overlap
+func canBuy(cost : Dictionary = {}):
+	
+	if !cost.is_empty():
+		if cost.size() == 1:
+			var oom = cost.keys()[0]
+			if gold[oom] >= cost[oom]:
+				return true;
+			else:
+				var passedprevOOM = false
+				for name in gold_name:
+					if passedprevOOM:
+						if gold[name] > 0:
+							return true
+					if name == oom:
+						passedprevOOM = true;
+				return false;
+					
+					
+		else: 
+			print( "Can buy 0 ",canBuy( {cost.keys()[0] : cost.values()[0]}) )
+			print({cost.keys()[0] : cost.values()[0]})
+			print( "Can buy 1 ",canBuy( {cost.keys()[1] : cost.values()[1]}) )
+			print({cost.keys()[1] : cost.values()[1]})
+			return ( canBuy( {cost.keys()[0] : cost.values()[0]} ) && canBuy( {cost.keys()[1] : cost.values()[1]} ) )
+		
+	pass
+
 
 # Below is a test of how each entity would call goldOverCheck()
 # add gold to gold dict, then overflow check. Each entity may have a timer,
 # or check for a global one.
 func _on_timer_timeout() -> void:
-	print("hello " , curTime)
-	
+	#print("hello " , curTime)
+	print("Can I buy something for 600k and 1M? ", canBuy({"Thousand":600000}) )
 	print(gold)
-	gold["Thousands"] += 0;
-	gold["Millions"] += 90860;
+	gold["Thousand"] += 1;
+	gold["Million"] += 0;
 	goldOverCheck();
-	curTime+=1;
+	#curTime+=1;
