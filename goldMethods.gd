@@ -254,15 +254,15 @@ func _on_timer_timeout() -> void:
 	#print("hello " , curTime)
 	
 	#Example of a future building/entity/item being bought/upgraded
-	print("Can I buy something for 500k ? ", canBuy({"Thousand":500000}) )
-	if canBuy({"Thousand":500000}) :
-		spendGold({"Thousand": 500000})
+	#print("Can I buy something for 500k ? ", canBuy({"Thousand":500000}) )
+	#if canBuy({"Thousand":500000}) :
+		#spendGold({"Thousand": 500000})
 		#spendGold({""})
 	print(gold)
 	
 	# How a future building/entity/item will add money to the user in their own timer funcs
 	gold["Thousand"] += 1;
-	gold["Million"] += 0;
+	gold["Million"] += 99999;
 	goldOverCheck();
 	
 	# end of timing function call speeds
