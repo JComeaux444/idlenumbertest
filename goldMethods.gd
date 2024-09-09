@@ -5,8 +5,8 @@ extends Node
 # Thousands handles 0-999999 so players can spend ex: 234, gold on random items 
 var gold = {
 	
-	"Thousand" : 59998,
-	"Million" : 0,
+	"Thousand" : 599998,
+	"Million" : 1,
 	"Billion" : 0,
 	"Trillion" : 0,
 	"Quadrillion" : 0,
@@ -71,7 +71,10 @@ func _update_goldText():
 			largestNumAt = num 
 			
 	
-	gold_text_formatted = str(gold.values()[largestNumAt],".",
+	if largestNumAt == 0:
+		gold_text_formatted = str(gold.values()[largestNumAt])
+	else:
+		gold_text_formatted = str(gold.values()[largestNumAt],".",
 						gold.values()[largestNumAt-1]," ",keyNow)
 	
 	#^^^^^^^^^^^^^
@@ -135,41 +138,90 @@ func goldOverCheck():
 				
 	_update_goldText()
 
-# Not working as intended, need to find a way to prevent overlap
+# Only call in UI / onclick of buying an object to confirm if user can afford 
+# 
 func canBuy(cost : Dictionary = {}):
 	
 	if !cost.is_empty():
 		if cost.size() == 1:
+			# current order of magnitude we are at
 			var oom = cost.keys()[0]
+			# if gold at oom is >= cost we can buy the thing
 			if gold[oom] >= cost[oom]:
 				return true;
 			else:
-				var passedprevOOM = false
+				#otherwise we check if there is a bigger oom to grab from
+				var passedprevOOM = false;
 				for name in gold_name:
+					#make sure we only grab from a bigger oom
 					if passedprevOOM:
+						# gold found at the bigger oom 
 						if gold[name] > 0:
-							return true
+							# in here we should deincriment the gold (will cause temp overflow)
+							# and run this again if we have a larger oom to check too.
+							# 
+							deIncGold();
+							return true;
 					if name == oom:
 						passedprevOOM = true;
 				return false;
 					
 					
 		else: 
-			print( "Can buy 0 ",canBuy( {cost.keys()[0] : cost.values()[0]}) )
+			var smaller = false;
+			var bigger = true;
+			
+			# should check the smaller oom first
+			print(gold_name.find(cost.keys()[0])," ",gold_name.find(cost.keys()[1]))
+			if gold_name.find(cost.keys()[0]) < gold_name.find(cost.keys()[1]):
+				smaller = canBuy( {cost.keys()[0] : cost.values()[0]} )
+				bigger = canBuy( {cost.keys()[1] : cost.values()[1]} )
+			else:
+				smaller = canBuy( {cost.keys()[1] : cost.values()[1]} )
+				bigger = canBuy( {cost.keys()[0] : cost.values()[0]} )
+			
+			#Here is where we should call overflow to fix the dictionary, since 
+			# we may call this function many times when a UI is opened
+			goldOverCheck()
+			print( "Can buy smaller? ",smaller )
 			print({cost.keys()[0] : cost.values()[0]})
-			print( "Can buy 1 ",canBuy( {cost.keys()[1] : cost.values()[1]}) )
+			print( "Can buy bigger? ",bigger )
 			print({cost.keys()[1] : cost.values()[1]})
-			return ( canBuy( {cost.keys()[0] : cost.values()[0]} ) && canBuy( {cost.keys()[1] : cost.values()[1]} ) )
+			return (  smaller && bigger  )
 		
 	pass
 
+
+func spendGold(spend : Dictionary = {}):
+	if !spend.is_empty():
+		gold[spend.keys()[0]] -= spend.values()[0];
+
+func deIncGold():
+	var index = 0;
+	# index 0 is Thousand, inc by 1,000,000
+	# index 13 is Infinities, inc by 1,000,000 too
+	# index 14 is True Infinity, let that be a normal int, if it overflows 
+	# 99.99% user cheated
+	for name in gold:
+		if index == largestNumAt:
+			gold[name] -= 1;
+			break;
+		if index == 0:
+			gold[name] += 1000000;
+		elif index == 13:
+			gold[name] += 1000000
+		elif index == 14:
+			pass
+		else:
+			gold[name] += 999
+		index += 1;
 
 # Below is a test of how each entity would call goldOverCheck()
 # add gold to gold dict, then overflow check. Each entity may have a timer,
 # or check for a global one.
 func _on_timer_timeout() -> void:
 	#print("hello " , curTime)
-	print("Can I buy something for 600k and 1M? ", canBuy({"Thousand":600000}) )
+	print("Can I buy something for 600k and 1M? ", canBuy({"Thousand":600000,"Million":1}) )
 	print(gold)
 	gold["Thousand"] += 1;
 	gold["Million"] += 0;

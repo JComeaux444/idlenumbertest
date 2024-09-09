@@ -7,7 +7,6 @@ script = ExtResource("1_qoxp6")
 
 [node name="Timer" type="Timer" parent="."]
 process_callback = 0
-wait_time = 0.364
 autostart = true
 
 [node name="TestLabel" type="Label" parent="."]
