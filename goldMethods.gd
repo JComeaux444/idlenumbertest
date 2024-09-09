@@ -5,8 +5,8 @@ extends Node
 # Thousands handles 0-999999 so players can spend ex: 234, gold on random items 
 var gold = {
 	
-	"Thousand" : 599998,
-	"Million" : 1,
+	"Thousand" : 999998,
+	"Million" : 0,
 	"Billion" : 0,
 	"Trillion" : 0,
 	"Quadrillion" : 0,
@@ -36,7 +36,7 @@ var gold_name = ["Thousand", "Million", "Billion", "Trillion",
 				"Octillion", "Nonillion", "Decillion", "Undecillion", 
 				"Duodecillion", "Infinities", "True Infinity"]
 
-# only here to track timer. count++ when 1 sec passes
+# only here to track timer. count++ when X sec passes
 var curTime = 0
 
 # Called when the node enters the scene tree for the first time.
@@ -73,6 +73,19 @@ func _update_goldText():
 	
 	if largestNumAt == 0:
 		gold_text_formatted = str(gold.values()[largestNumAt])
+	elif largestNumAt == 1:
+		var thousand = str(gold["Thousand"])
+		# Format so when in millions you only show the first 3 digits of thousands
+		# Yes there is a better way but I want this done fast atm. Will fix later
+		if thousand.length() <= 3:
+			thousand = "000"
+		elif thousand.length() <= 4:
+			thousand = str("00",thousand[0])
+		elif thousand.length() <= 5:
+			thousand = str("0",thousand[0],thousand[1])
+		else:
+			thousand = str(thousand[0],thousand[1],thousand[2])
+		gold_text_formatted = str(gold.values()[largestNumAt],".",thousand," ",keyNow)
 	else:
 		gold_text_formatted = str(gold.values()[largestNumAt],".",
 						gold.values()[largestNumAt-1]," ",keyNow)
@@ -152,22 +165,27 @@ func canBuy(cost : Dictionary = {}):
 			else:
 				#otherwise we check if there is a bigger oom to grab from
 				var passedprevOOM = false;
-				for name in gold_name:
+				for gname in gold_name:
 					#make sure we only grab from a bigger oom
 					if passedprevOOM:
 						# gold found at the bigger oom 
-						if gold[name] > 0:
+						if gold[gname] > 0:
 							# in here we should deincriment the gold (will cause temp overflow)
 							# and run this again if we have a larger oom to check too.
-							# 
 							deIncGold();
 							return true;
-					if name == oom:
+					if gname == oom:
 						passedprevOOM = true;
 				return false;
 					
 					
 		else: 
+			#This part is important otherwise the code may use a number twice
+			# ex: You have 400k and 1M. But trying to spend 500k and 1M
+			# without the below the code, at 400k it will see the 1M and assume it can use it
+			# it to make up the difference. Then would go on to the 1M you want to spend,
+			# and see the 1M you have AGAIN, and assume you can use it again.  
+			
 			var smaller = false;
 			var bigger = true;
 			
@@ -181,7 +199,8 @@ func canBuy(cost : Dictionary = {}):
 				bigger = canBuy( {cost.keys()[0] : cost.values()[0]} )
 			
 			#Here is where we should call overflow to fix the dictionary, since 
-			# we may call this function many times when a UI is opened
+			# we may call this function many times when a UI is opened before 
+			# it gets called during the timer (preventing possible visual bugs)
 			goldOverCheck()
 			print( "Can buy smaller? ",smaller )
 			print({cost.keys()[0] : cost.values()[0]})
@@ -191,39 +210,62 @@ func canBuy(cost : Dictionary = {}):
 		
 	pass
 
-
+# Subracts gold from gold dictionary, should only be used after canBuy since it 
+# checks and confirms if you can
+# may be able to call canBuy in here and only run when true. Safety?
 func spendGold(spend : Dictionary = {}):
 	if !spend.is_empty():
 		gold[spend.keys()[0]] -= spend.values()[0];
 
+
+# used when a smaller number must barrow from a larger
+# for ex: if i want to buy a 500k item, but have 1M and 100000k
+# I can take the 1000000 from Million, and put it into Thousands temporarily
+# so I can use it.
 func deIncGold():
 	var index = 0;
 	# index 0 is Thousand, inc by 1,000,000
 	# index 13 is Infinities, inc by 1,000,000 too
 	# index 14 is True Infinity, let that be a normal int, if it overflows 
 	# 99.99% user cheated
-	for name in gold:
+	for gname in gold:
 		if index == largestNumAt:
-			gold[name] -= 1;
+			gold[gname] -= 1;
 			break;
 		if index == 0:
-			gold[name] += 1000000;
+			gold[gname] += 1000000;
 		elif index == 13:
-			gold[name] += 1000000
+			gold[gname] += 1000000
 		elif index == 14:
 			pass
 		else:
-			gold[name] += 999
+			gold[gname] += 999
 		index += 1;
 
-# Below is a test of how each entity would call goldOverCheck()
-# add gold to gold dict, then overflow check. Each entity may have a timer,
+
+
+# Below is a test of how each entity would call goldOverCheck() / use this file
+
+# add gold to gold dict, then overflow check. Each entity may have a timer func in which this is done,
 # or check for a global one.
 func _on_timer_timeout() -> void:
+	#Timer for things
+	var timer = Time.get_ticks_usec()
 	#print("hello " , curTime)
-	print("Can I buy something for 600k and 1M? ", canBuy({"Thousand":600000,"Million":1}) )
+	
+	#Example of a future building/entity/item being bought/upgraded
+	print("Can I buy something for 500k ? ", canBuy({"Thousand":500000}) )
+	if canBuy({"Thousand":500000}) :
+		spendGold({"Thousand": 500000})
+		#spendGold({""})
 	print(gold)
+	
+	# How a future building/entity/item will add money to the user in their own timer funcs
 	gold["Thousand"] += 1;
 	gold["Million"] += 0;
 	goldOverCheck();
+	
+	# end of timing function call speeds
+	var time_end = Time.get_ticks_usec()
+	print("canBuy and goldOverCheck took %d microseconds" % (time_end - timer))
 	#curTime+=1;
